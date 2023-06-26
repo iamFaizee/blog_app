@@ -1,65 +1,59 @@
 const express = require('express')
-const cors = require('cors')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
-require('dotenv').config()
+require('dotenv').config();
+const cors = require('cors')
 
-const {connection} = require('./config/db')
-const {Usermodel} = require('./models/User.model')
-const {blogRouter} = require("./routes/blog.routes")
-const {authenticate} = require('./middlewares/authenticate')
 
-const app = express()
+const {connection} = require('./config/db');
+const { Usermodel } = require('./models/User.model');
+const {todoRouter} = require('./routes/todo.routes');
+const { authentication } = require('./middleware/authentication');
+
+const app = express();
 
 app.use(express.json());
 
-app.use(cors())
-
-
-app.get('/', (req,res) => {
-    res.json({success: 'Welcome to home page'})
-})
-
 
 app.post('/signup', async (req,res) => {
-    const {email,password,name,age} = req.body;
+    const {email,password} = req.body
+
     const hashed_password = bcrypt.hashSync(password, 8);
     const new_user = new Usermodel({
         email,
         password: hashed_password,
-        name,
-        age,
+        ipAddress: req.ip,
     })
 
     await new_user.save()
-    res.json({succes: 'signup successful'})
+    res.json({success: 'Signup successful'})
 })
 
 
 app.post('/login', async (req,res) => {
-    const {email,password} = req.body
+    const {email,password} = req.body;
     const user = await Usermodel.findOne({email});
 
     if(!user){
         res.json({error: 'Please Sign up'})
     }
 
-    const hash = user.password
-    const correct_password = bcrypt.compareSync(password, hash);
+    const hash = user.password;
+    const correct_password = bcrypt.compareSync(password, hash)
 
     if(correct_password){
-        const token = jwt.sign({userID: user._id}, process.env.SECRET_CODE);
-        res.json({success: "login successful","token": token})
+        const token = jwt.sign({userID: user._id}, process.env.SECRET);
+        res.status(200).json({success: 'Login successful', "token": token})
     }
     else{
-        res.json({error: 'Login Failed'})
+        res.status(500).json({error: 'Login failed'})
     }
 })
 
 
-app.use('/blogs', authenticate, blogRouter)
+app.use('/todos', authentication, todoRouter)
 
 
-app.listen(9000, () => {
-    console.log("listening on 9000")
+app.listen(process.env.PORT, () => {
+    console.log(`Listening on ${process.env.PORT}`)
 })
