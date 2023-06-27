@@ -16,6 +16,10 @@ app.use(cors())
 
 app.use(express.json());
 
+app.get('/',(req,res) => {
+    res.send("welcome to home")
+})
+
 
 app.post('/signup', async (req,res) => {
     const {email,password} = req.body
